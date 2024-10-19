@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Catalog</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: url("https://i.pinimg.com/736x/55/74/54/557454f9d762c6b6c9efdaec66b4dbb9.jpg") no-repeat center center fixed;
+            background-size: cover;
+        }
+        .form-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            padding: 20px;
+            max-width: 700px;
+            width: 100%;
+            margin: 20px;
+        }
+        .tab {
+            display: inline-block;
+            padding: 10px;
+            cursor: pointer;
+            background: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        .tab:hover {
+            background: #0056b3;
+        }
+        .active {
+            background: #0056b3;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        #product-page {
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        #back-button {
+            background: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #back-button:hover {
+            background: #0056b3;
+        }
+        input[type="text"], input[type="password"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button[type="submit"], .action-button {
+            background: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button[type="submit"]:hover, .action-button:hover {
+            background: #0056b3;
+        }
+        .action-button {
+            margin: 2px;
+        }
+        h2 {
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+    <div id="form-container" class="form-container">
+        <button id="login-tab" class="tab active">Login</button>
+        <button id="signup-tab" class="tab">Signup</button>
+
+        <div id="login-form">
+            <h2>Login</h2>
+            <div id="login-message" class="message"></div>
+            <form id="login-form-element">
+                <input type="text" id="login-username" placeholder="Username" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+
+        <div id="signup-form" style="display: none;">
+            <h2>Signup</h2>
+            <div id="signup-message" class="message"></div>
+            <form id="signup-form-container">
+                <input type="text" id="signup-username" placeholder="Username" required>
+                <input type="password" id="signup-password" placeholder="Password" required>
+                <button type="submit">Signup</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="product-page" class="form-container">
+        <button id="back-button">Back</button>
+        <h2>Products</h2>
+        <div id="product-message" class="message"></div>
+        <form id="product-form">
+            <input type="text" id="product-name" placeholder="Product Name" required>
+            <input type="text" id="product-description" placeholder="Product Description" required>
+            <button type="submit">Add Product</button>
+        </form>
+        <table id="product-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        const apiUrl = 'https://products-backend-o7su.onrender.com';
+        let currentProductId = null; // Initialize current product ID
+
+        document.getElementById('login-tab').addEventListener('click', () => {
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('signup-form').style.display = 'none';
+            document.getElementById('login-tab').classList.add('active');
+            document.getElementById('signup-tab').classList.remove('active');
+        });
+
+        document.getElementById('signup-tab').addEventListener('click', () => {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'block';
+            document.getElementById('login-tab').classList.remove('active');
+            document.getElementById('signup-tab').classList.add('active');
+        });
+
+        document.getElementById('login-form-element').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            const messageElement = document.getElementById('login-message');
+
+            try {
+                const response = await fetch(`${apiUrl}/api/sellers/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.token);
+                    document.getElementById('form-container').style.display = 'none';
+                    document.getElementById('product-page').style.display = 'block';
+                    loadProducts();
+                } else {
+                    const error = await response.json();
+                    messageElement.textContent = `Error: ${error.error}`;
+                    messageElement.className = 'message error';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                messageElement.textContent = 'An unexpected error occurred.';
+                messageElement.className = 'message error';
+            }
+        });
+
+        document.getElementById('signup-form-container').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('signup-username').value;
+            const password = document.getElementById('signup-password').value;
+            const messageElement = document.getElementById('signup-message');
+
+            try {
+                const response = await fetch(`${apiUrl}/api/sellers/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    messageElement.textContent = 'Signup successful! Please log in.';
+                    messageElement.className = 'message success';
+                    document.getElementById('signup-form').reset();
+                } else {
+                    const error = await response.json();
+                    messageElement.textContent = `Error: ${error.error}`;
+                    messageElement.className = 'message error';
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                messageElement.textContent = 'An unexpected error occurred.';
+                messageElement.className = 'message error';
+            }
+        });
+
+        document.getElementById('back-button').addEventListener('click', () => {
+            document.getElementById('product-page').style.display = 'none';
+            document.getElementById('form-container').style.display = 'block';
+        });
+
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('product-name').value;
+            const description = document.getElementById('product-description').value;
+            const messageElement = document.getElementById('product-message');
+
+            if (currentProductId) {
+                // Update existing product
+                try {
+                    const response = await fetch(`${apiUrl}/api/products/${currentProductId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({ name, description })
+                    });
+
+                    if (response.ok) {
+                        loadProducts(); // Reload products to reflect changes
+                        messageElement.textContent = 'Product updated successfully!';
+                        messageElement.className = 'message success';
+                        document.getElementById('product-form').reset(); // Reset the form
+                        currentProductId = null; // Clear the current product ID
+                    } else {
+                        const error = await response.json();
+                        messageElement.textContent = `Error: ${error.error}`;
+                        messageElement.className = 'message error';
+                    }
+                } catch (error) {
+                    console.error('Update product error:', error);
+                    messageElement.textContent = 'An unexpected error occurred.';
+                    messageElement.className = 'message error';
+                }
+            } else {
+                // Add new product
+                try {
+                    const response = await fetch(`${apiUrl}/api/products`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({ name, description })
+                    });
+
+                    if (response.ok) {
+                        loadProducts(); // Reload products to reflect changes
+                        messageElement.textContent = 'Product added successfully!';
+                        messageElement.className = 'message success';
+                        document.getElementById('product-form').reset(); // Reset the form
+                    } else {
+                        const error = await response.json();
+                        messageElement.textContent = `Error: ${error.error}`;
+                        messageElement.className = 'message error';
+                    }
+                } catch (error) {
+                    console.error('Add product error:', error);
+                    messageElement.textContent = 'An unexpected error occurred.';
+                    messageElement.className = 'message error';
+                }
+            }
+        });
+
+        // Load products from the API
+        async function loadProducts() {
+            const response = await fetch(`${apiUrl}/api/products`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.ok) {
+                const products = await response.json();
+                const tbody = document.querySelector('#product-table tbody');
+                tbody.innerHTML = ''; // Clear existing rows
+                currentProductId = null; // Reset current product ID
+
+                products.forEach(product => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${product._id}</td>
+                        <td>${product.name}</td>
+                        <td>${product.description}</td>
+                        <td>
+                            <button class="action-button" onclick="showUpdateForm('${product._id}', '${product.name}', '${product.description}')">Update</button>
+                            <button class="action-button" onclick="deleteProduct('${product._id}')">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Show the update form with existing values
+        function showUpdateForm(id, name, description) {
+            currentProductId = id; // Store the product ID being edited
+            document.getElementById('product-name').value = name;
+            document.getElementById('product-description').value = description;
+
+            // Change form submit handler to update the product
+            document.getElementById('product-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const updatedName = document.getElementById('product-name').value;
+                const updatedDescription = document.getElementById('product-description').value;
+                const messageElement = document.getElementById('product-message');
+
+                try {
+                    const response = await fetch(`${apiUrl}/api/products/${currentProductId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({ name: updatedName, description: updatedDescription })
+                    });
+
+                    if (response.ok) {
+                        loadProducts(); // Reload products to reflect changes
+                        messageElement.textContent = 'Product updated successfully!';
+                        messageElement.className = 'message success';
+                        document.getElementById('product-form').reset(); // Reset the form
+                        currentProductId = null; // Clear the current product ID
+                    } else {
+                        const error = await response.json();
+                        messageElement.textContent = `Error: ${error.error}`;
+                        messageElement.className = 'message error';
+                    }
+                } catch (error) {
+                    console.error('Update product error:', error);
+                    messageElement.textContent = 'An unexpected error occurred.';
+                    messageElement.className = 'message error';
+                }
+            };
+        }
+
+        // Delete product function
+        async function deleteProduct(id) {
+            const response = await fetch(`${apiUrl}/api/products/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.ok) {
+                loadProducts(); // Reload products after deletion
+                const messageElement = document.getElementById('product-message');
+                messageElement.textContent = 'Product deleted successfully!';
+                messageElement.className = 'message success';
+            } else {
+                const error = await response.json();
+                const messageElement = document.getElementById('product-message');
+                messageElement.textContent = `Error: ${error.error}`;
+                messageElement.className = 'message error';
+            }
+        }
+    </script>
+</body>
+</html>
